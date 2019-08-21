@@ -9,10 +9,14 @@ from random import randrange
 from PyQt5.QtWidgets import QApplication, QDialog
 from guiTest1 import *
 
-CHUNK = 1024
+#CHUNK = 1024
+#CHUNK = 512
+CHUNK = 8192 
+#CHUNK = 16384
 exitFlag = 0
 START_POINT= 0
 status= True
+readPoint = 0
 #class Ui_Dialog(QMainWindow):
 class MyForm(QDialog):
     def __init__(self):
@@ -21,17 +25,17 @@ class MyForm(QDialog):
         self.ui.setupUi(self)
         self.ui.readPoint.valueChanged.connect(self.readPointValueChanged)
         self.ui.playSound.toggled.connect(self.turnPlayStatusOn)
-        self.status = False
+        self.status =True 
         self.value = 0
         self.show()
 
     def readPointValueChanged(self, value):
         self.value = value
-        print(value)
+        #print(value)
 
     def turnPlayStatusOn(self, status):
         self.status = self.ui.playSound.isChecked()
-        print(status)
+        #print(status)
 
     def getValue(self):
         return self.value
@@ -49,6 +53,7 @@ class playAudio(threading.Thread):
     def run(self):
         global START_POINT
         global status
+        global readPoint
         wf = wave.open('01_otto_muhl.wav', 'rb')
         #wf = wave.open('example.wav', 'rb')
         #wf = wave.open('03_Hellucination_1_Drowingirl_mono.wav', 'rb')
@@ -59,23 +64,30 @@ class playAudio(threading.Thread):
                         output=True)
 
         data = wf.readframes(CHUNK)
+        nframes = wf.getnframes()
         frames = wf.readframes(wf.getnframes())
         #output = frames[START_POINT:CHUNK+START_POINT] 
         print("status before audio"+str(status))
-        for i in range (250):
+        while(status):
+        #for i in range (250):
             threadLock.acquire()
-            print("Global status on audio thread"+str(status))
-            print("Start Point in audio thread: "+str(START_POINT))
+            #print("Global status on audio thread"+str(status))
+            #print("Start Point in audio thread: "+str(START_POINT))
             start_point = START_POINT
-            #output = frames[START_POINT:CHUNK+START_POINT+1] 
-            output = frames[start_point:CHUNK+start_point+1] 
+            #print("read point"+str(readPoint))
+            #print("start_point"+str(start_point))
+            output = frames[START_POINT:CHUNK+START_POINT+1] 
+            #output = frames[start_point:CHUNK+start_point] 
             #print("output frames "+str(output))
             #while len(output) > 0:
-            for j in range(50):
+            for j in range(25):  #aumentar o disminuir para tamanio d grano
                 stream.write(output)
                 START_POINT += CHUNK
                 output = frames[START_POINT:START_POINT+CHUNK]
             threadLock.release()
+            time.sleep(0.01)
+        else:
+            print("no audio")
             time.sleep(0.1)
         print("eof") 
         #time.sleep(1)
@@ -95,17 +107,18 @@ class myThread(threading.Thread):
         print("Starting "+self.name)
         global START_POINT
         global status
+        global readPoint
         #self.status = self.toggle.playSound.isChecked()
-        status =  True
+        #status =  True
         time.sleep(0.1)
         while(True):
             threadLock.acquire()
             status = self.w.getSatus()
-            print(status)
+            #print("Status on Gui thread"+str(status))
             readPoint = self.w.getValue()
-            print("From fader "+ str(readPoint))
+            #print("From fader "+ str(readPoint))
             START_POINT = CHUNK * readPoint 
-            print("STart point at myThread "+str(START_POINT))
+            #print("STart point at myThread "+str(START_POINT))
             threadLock.release()
             time.sleep(0.1)
 
@@ -122,7 +135,6 @@ if __name__ == '__main__':
     w.exec()
     thread1.join()
     thread2.join()
-    
     p.terminate()
     sys.exit(0)
 
