@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 import sys
+import os
 import time 
-import threading
 import pyaudio
 import wave
 import atexit
-from random import randrange
+import glob
 from PyQt5.QtWidgets import QApplication, QDialog, QFileDialog
 from PyQt5.QtCore import QTimer
 from guiTest1 import *
@@ -60,6 +60,40 @@ class MyForm(QDialog):
         timer.timeout.connect(self.audioCallback)
         self.timer = timer
 
+    def loadAudioFile(self, f, file_name):
+        file_name = f.name.split('/')[-1]
+        self.player.load_file_and_set_frames(f.name)
+        self.player.START_POINT = 0 
+        self.ui.labelFileName.setText(file_name)
+        maximum = int(self.player.number_of_frames / self.player.CHUNK)
+        self.ui.readPoint.setMaximum(maximum)
+        self.ui.readPoint.setValue(0)
+        self.timer.start(0.2)
+    
+    def loadCsvFiles(self, path_of_file, file_name):
+        # se podria agregar regular expressions para que levante el formato audo_file_name_frameSize_n_hopSize_n
+        csv_files_array = glob.glob(os.path.join(path_of_file,'*.csv'))
+        # check if csv file name is equal to wav file name
+        clean_csv_files = []
+        if csv_files_array:
+            for csv_file in csv_files_array:
+                #the name of the csv file contains: name of audio file, frame size and hop size
+                # in the format audio_file_name_frameSize_n_hopSize_n
+                # aca si el csv no contiene la palabra frameSize o hopSize no deberia ser valido
+                csv_file_name  = csv_file.split('/')[-1].split('.')[0]
+                csv_file_name_list  = csv_file_name.split('_')
+                audio_file_name =  csv_file_name.split('frameSize')[0][:-1]
+                csv_dict = {
+                        'name': audio_file_name,
+                        'frameSize':int(csv_file_name_list[csv_file_name_list.index('frameSize')+1]),
+                        'hopsize': int(csv_file_name_list[csv_file_name_list.index('hopSize')+1]),
+                        }
+                print(csv_dict)
+        else:
+            print('no csv on directory')
+        # chequear si csv son resultados de analisis de los audios
+        # haciendo un test??
+
     def openFileDialog(self):
         self.ui.stopButton.setChecked(True)
         self.status = False
@@ -69,15 +103,16 @@ class MyForm(QDialog):
         if fname[0]:
             f = open(fname[0], 'r')
         with f:
-            self.player.load_file_and_set_frames(f.name)
-            self.player.START_POINT = 0 
-            file_name_from_path = f.name.split('/')[-1]
-            self.ui.labelFileName.setText(file_name_from_path)
-            maximum = int(self.player.number_of_frames / self.player.CHUNK)
-            print(maximum)
-            self.ui.readPoint.setMaximum(maximum)
-            self.ui.readPoint.setValue(0)
-            self.timer.start(0.2)
+            file_name_and_extension = f.name.split('/')[-1]
+            path_of_file = os.path.dirname(os.path.realpath(f.name))
+            file_name = file_name_and_extension.split('.')[0]
+            extension = file_name_and_extension.split('.')[-1]
+            if extension == 'wav':
+                self.loadAudioFile(f, file_name_and_extension)
+                self.loadCsvFiles(path_of_file, file_name)
+            else:
+                print("Must be a .wav file")
+
 
     def readPointValueChanged(self, value):
         self.player.START_POINT = self.player.CHUNK * value
