@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Corpus Based Concatenative Synth</string>
   </property>
   <widget class="QTabWidget" name="tabWidget">
    <property name="geometry">
@@ -90,6 +90,26 @@
        <height>25</height>
       </rect>
      </property>
+     <item>
+      <property name="text">
+       <string>2048</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>4096</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>8192</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>16384</string>
+      </property>
+     </item>
     </widget>
     <widget class="QLabel" name="label_2">
      <property name="geometry">
@@ -140,6 +160,32 @@
       <string>Selected Features</string>
      </property>
     </widget>
+    <widget class="QPushButton" name="pushButtonFilterFeatures">
+     <property name="geometry">
+      <rect>
+       <x>320</x>
+       <y>230</y>
+       <width>111</width>
+       <height>25</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Filter Features</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButton_2">
+     <property name="geometry">
+      <rect>
+       <x>320</x>
+       <y>260</y>
+       <width>161</width>
+       <height>25</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Perform PCA analysis</string>
+     </property>
+    </widget>
    </widget>
    <widget class="QWidget" name="playTab">
     <attribute name="title">
@@ -183,6 +229,49 @@
        </widget>
       </item>
      </layout>
+    </widget>
+    <widget class="QComboBox" name="comboBoxGrainSortingCriterion">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>40</y>
+       <width>221</width>
+       <height>25</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="comboBoxLookUpDirection">
+     <property name="geometry">
+      <rect>
+       <x>280</x>
+       <y>40</y>
+       <width>111</width>
+       <height>25</height>
+      </rect>
+     </property>
+     <item>
+      <property name="text">
+       <string>Ascending</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Descending</string>
+      </property>
+     </item>
+    </widget>
+    <widget class="QLabel" name="label_5">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>10</y>
+       <width>141</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Sorty by:</string>
+     </property>
     </widget>
    </widget>
   </widget>

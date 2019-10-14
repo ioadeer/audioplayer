@@ -12,6 +12,13 @@ from PyQt5.QtWidgets import QApplication, QDialog, QFileDialog
 from PyQt5.QtCore import QTimer
 from guiTest1 import *
 
+from PyQt5.QtCore import pyqtRemoveInputHook
+from pdb import set_trace
+
+# para debuggear:
+#pyqtRemoveInputHook()
+#set_trace()
+
 class AudioPlayer(object):
 
     def __init__(self):
@@ -28,7 +35,6 @@ class AudioPlayer(object):
         atexit.register(self.close)
 
     def write_output(self):
-        #print(self.START_POINT)
         output = self.frames[self.START_POINT:self.START_POINT+self.CHUNK]
         self.START_POINT += self.CHUNK
         self.stream.write(output)
@@ -42,6 +48,45 @@ class AudioPlayer(object):
     def close(self):
         self.stream.stop_stream()
         
+class DataManager(object):
+
+    """ Esta clase la estoy implementando para guardar informacion util como
+    directorio donde trabajo, para poder cargar archivos csv dinamicamente al
+    momemnto de elegir el tamanio de grano ya que cargar todos los csv ocupa
+    mucha memoria. tambien quiero hacer aca los procesos de filtrado de data
+    frames y calculo de pca"""
+
+    def __init__(self):
+        # aca junto los features filtrados
+        self.dfs = []
+        self.data_file_dict = {}
+
+    def setWorkingDirectory(self, path):
+        self.workingDirectory = path
+
+    def loadCsvFiles(self, frameSizeUserInput):
+        #pyqtRemoveInputHook()
+        #set_trace()
+        csv_files_paths_array = glob.glob(os.path.join(self.workingDirectory,'*.csv'))
+        if csv_files_paths_array:
+            for csv_file_path in csv_files_paths_array:
+                #the name of the csv file contains: name of audio file, frame size and hop size
+                # in the format audio_file_name_frameSize_n_hopSize_n
+                csv_file_name  = csv_file_path.split('/')[-1].split('.')[0]
+                csv_file_name_list  = csv_file_name.split('_')
+                frameSize = int(csv_file_name_list[csv_file_name_list.index('frameSize')+1])
+                if frameSize == frameSizeUserInput:
+                    df = pd.read_csv(csv_file_path)
+                    audio_file_name =  csv_file_name.split('frameSize')[0][:-1]
+                    self.data_file_dict = {
+                            'name': audio_file_name,
+                            'frameSize': frameSize,
+                            'hopSize': int(csv_file_name_list[csv_file_name_list.index('hopSize')+1]),
+                            'data_frame': df,
+                            }
+        else:
+            print('no csv on directory')
+
 class MyForm(QDialog):
 
     def __init__(self):
@@ -56,10 +101,10 @@ class MyForm(QDialog):
         self.ui.listWidgetFeatures.itemSelectionChanged.connect(self.set_selected_features)
         self.status = False 
         self.value = 0
-        self.clean_csv_files = []
         self.ui.pushButtonLoadFile.clicked.connect(self.openFileDialog)
         self.show()
         self.initAudioPlayer()
+        self.initDataManager()
         timer = QtCore.QTimer()
         timer.timeout.connect(self.audioCallback)
         self.timer = timer
@@ -74,43 +119,13 @@ class MyForm(QDialog):
         self.ui.readPoint.setMaximum(maximum)
         self.ui.readPoint.setValue(0)
         self.timer.start(0.2)
-    
-    def loadCsvFiles(self, path_of_file, file_name):
-        # se podria agregar regular expressions para que levante el formato audo_file_name_frameSize_n_hopSize_n
-        csv_files_array = glob.glob(os.path.join(path_of_file,'*.csv'))
-        # check if csv file name is equal to wav file name
-        clean_unsorted_csv_files = []
-        if csv_files_array:
-            for csv_file in csv_files_array:
-                #the name of the csv file contains: name of audio file, frame size and hop size
-                # in the format audio_file_name_frameSize_n_hopSize_n
-                # aca si el csv no contiene la palabra frameSize o hopSize no deberia ser valido
-                df = pd.read_csv(csv_file)
-                csv_file_name  = csv_file.split('/')[-1].split('.')[0]
-                csv_file_name_list  = csv_file_name.split('_')
-                audio_file_name =  csv_file_name.split('frameSize')[0][:-1]
-                csv_dict = {
-                        'name': audio_file_name,
-                        'frameSize':int(csv_file_name_list[csv_file_name_list.index('frameSize')+1]),
-                        'hopSize': int(csv_file_name_list[csv_file_name_list.index('hopSize')+1]),
-                        'data_frame': df,
-                        }
-
-                clean_unsorted_csv_files.append(csv_dict)
-            self.clean_csv_files = sorted(clean_unsorted_csv_files, key= lambda k : k['hopSize'])
-            self.ui.comboBoxGrainSize.addItems(str(k['hopSize']) for k in self.clean_csv_files)
-            #self.ui.listWidgetFeatures.addItems(self.clean_csv_files[0]['data_frame'].columns.values)
-        else:
-            print('no csv on directory')
-        # chequear si csv son resultados de analisis de los audios
-        # haciendo un test??
 
     def openFileDialog(self):
         self.ui.stopButton.setChecked(True)
         self.status = False
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fname = QFileDialog.getOpenFileName(self, 'Open File','\home','', options = options)
+        fname = QFileDialog.getOpenFileName(self, 'Open Wav File','\home','', options = options)
         if fname[0]:
             f = open(fname[0], 'r')
         with f:
@@ -120,33 +135,37 @@ class MyForm(QDialog):
             extension = file_name_and_extension.split('.')[-1]
             if extension == 'wav':
                 self.loadAudioFile(f, file_name_and_extension)
-                self.loadCsvFiles(path_of_file, file_name)
+                self.dataManager.setWorkingDirectory(path_of_file)
+                self.dataManager.loadCsvFiles(int(self.ui.comboBoxGrainSize.itemText(self.ui.comboBoxGrainSize.currentIndex())))
+                self.loadAllFeaturesToFeatureListWidget()
             else:
                 print("Must be a .wav file")
 
 
+    def initAudioPlayer(self):
+        self.player = AudioPlayer()
+
+    def initDataManager(self):
+        self.dataManager = DataManager()
+
     def readPointValueChanged(self, value):
         # se agrego el * 2 por el stereo
         self.player.START_POINT = self.player.CHUNK * value * 2 
-        #print("read point value changed: ")
-        #print(self.player.START_POINT)
-        #print(self.player.CHUNK)
-        #print(value)
 
     def turnPlayStatusOn(self, status):
         self.status = self.ui.playButton.isChecked()
-        #print(status)
-    
-    def initAudioPlayer(self):
-        self.player = AudioPlayer()
          
     def audioCallback(self):
         if self.status:
             self.player.write_output()
 
-    def reload_features(self):
+    def loadAllFeaturesToFeatureListWidget(self):
         self.ui.listWidgetFeatures.clear()
-        self.ui.listWidgetFeatures.addItems(self.clean_csv_files[self.ui.comboBoxGrainSize.currentIndex()]['data_frame'].columns.values[1:])
+        self.ui.listWidgetFeatures.addItems(self.dataManager.data_file_dict['data_frame'].columns.values[1:])
+
+    def reload_features(self):
+        self.dataManager.loadCsvFiles(int(self.ui.comboBoxGrainSize.itemText(self.ui.comboBoxGrainSize.currentIndex())))
+        self.loadAllFeaturesToFeatureListWidget()
 
     def set_selected_features(self):
         self.ui.listWidgetSelectedFeatures.clear()
