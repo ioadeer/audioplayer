@@ -7,6 +7,7 @@ import pyaudio
 import wave
 import atexit
 import glob
+import pandas as pd
 from PyQt5.QtWidgets import QApplication, QDialog, QFileDialog
 from PyQt5.QtCore import QTimer
 from guiTest1 import *
@@ -51,8 +52,11 @@ class MyForm(QDialog):
         self.ui.playButton.toggled.connect(self.turnPlayStatusOn)
         self.ui.playButton.setChecked(False)
         self.ui.stopButton.setChecked(True)
+        self.ui.comboBoxGrainSize.currentIndexChanged.connect(self.reload_features)
+        self.ui.listWidgetFeatures.itemSelectionChanged.connect(self.set_selected_features)
         self.status = False 
         self.value = 0
+        self.clean_csv_files = []
         self.ui.pushButtonLoadFile.clicked.connect(self.openFileDialog)
         self.show()
         self.initAudioPlayer()
@@ -66,6 +70,7 @@ class MyForm(QDialog):
         self.player.START_POINT = 0 
         self.ui.labelFileName.setText(file_name)
         maximum = int(self.player.number_of_frames / self.player.CHUNK)
+        #self.ui.readPoint.setSingleStep(self.player.CHUNK)
         self.ui.readPoint.setMaximum(maximum)
         self.ui.readPoint.setValue(0)
         self.timer.start(0.2)
@@ -74,21 +79,27 @@ class MyForm(QDialog):
         # se podria agregar regular expressions para que levante el formato audo_file_name_frameSize_n_hopSize_n
         csv_files_array = glob.glob(os.path.join(path_of_file,'*.csv'))
         # check if csv file name is equal to wav file name
-        clean_csv_files = []
+        clean_unsorted_csv_files = []
         if csv_files_array:
             for csv_file in csv_files_array:
                 #the name of the csv file contains: name of audio file, frame size and hop size
                 # in the format audio_file_name_frameSize_n_hopSize_n
                 # aca si el csv no contiene la palabra frameSize o hopSize no deberia ser valido
+                df = pd.read_csv(csv_file)
                 csv_file_name  = csv_file.split('/')[-1].split('.')[0]
                 csv_file_name_list  = csv_file_name.split('_')
                 audio_file_name =  csv_file_name.split('frameSize')[0][:-1]
                 csv_dict = {
                         'name': audio_file_name,
                         'frameSize':int(csv_file_name_list[csv_file_name_list.index('frameSize')+1]),
-                        'hopsize': int(csv_file_name_list[csv_file_name_list.index('hopSize')+1]),
+                        'hopSize': int(csv_file_name_list[csv_file_name_list.index('hopSize')+1]),
+                        'data_frame': df,
                         }
-                print(csv_dict)
+
+                clean_unsorted_csv_files.append(csv_dict)
+            self.clean_csv_files = sorted(clean_unsorted_csv_files, key= lambda k : k['hopSize'])
+            self.ui.comboBoxGrainSize.addItems(str(k['hopSize']) for k in self.clean_csv_files)
+            #self.ui.listWidgetFeatures.addItems(self.clean_csv_files[0]['data_frame'].columns.values)
         else:
             print('no csv on directory')
         # chequear si csv son resultados de analisis de los audios
@@ -115,8 +126,12 @@ class MyForm(QDialog):
 
 
     def readPointValueChanged(self, value):
-        self.player.START_POINT = self.player.CHUNK * value
+        # se agrego el * 2 por el stereo
+        self.player.START_POINT = self.player.CHUNK * value * 2 
+        #print("read point value changed: ")
         #print(self.player.START_POINT)
+        #print(self.player.CHUNK)
+        #print(value)
 
     def turnPlayStatusOn(self, status):
         self.status = self.ui.playButton.isChecked()
@@ -128,6 +143,16 @@ class MyForm(QDialog):
     def audioCallback(self):
         if self.status:
             self.player.write_output()
+
+    def reload_features(self):
+        self.ui.listWidgetFeatures.clear()
+        self.ui.listWidgetFeatures.addItems(self.clean_csv_files[self.ui.comboBoxGrainSize.currentIndex()]['data_frame'].columns.values[1:])
+
+    def set_selected_features(self):
+        self.ui.listWidgetSelectedFeatures.clear()
+        selectedFeatures = self.ui.listWidgetFeatures.selectedItems()
+        for i in list(selectedFeatures):
+            self.ui.listWidgetSelectedFeatures.addItem(i.text())
 
 
 if __name__ == '__main__':
