@@ -5,12 +5,16 @@ import os
 import time 
 import pyaudio
 import wave
+import scipy.io.wavfile as wf
 import atexit
 import glob
 import pandas as pd
+import numpy as np
 from PyQt5.QtWidgets import QApplication, QDialog, QFileDialog
 from PyQt5.QtCore import QTimer
 from guiTest1 import *
+sys.path.append('.')
+from utils import granular_util as gu
 
 from PyQt5.QtCore import pyqtRemoveInputHook
 from pdb import set_trace
@@ -25,6 +29,7 @@ class AudioPlayer(object):
         self.CHUNK = 8192 #1024 
         self.START_POINT = 0
         self.frames = 0
+        self.fileOrderedFrames = 0
         # aca estoy hardcodeando el stream a las caracteristicas del primer audio
         # probar format = pyaudio.paInt16, channels =2 , rate 44100
         self.p = pyaudio.PyAudio()
@@ -43,14 +48,16 @@ class AudioPlayer(object):
         # agregar excepcion si no lo puede cargar
         self.wf = wave.open(file_path, 'rb')
         self.frames = self.wf.readframes(self.wf.getnframes())
+        self.fileOrderedFrames = self.frames
         self.number_of_frames = self.wf.getnframes()
+        rate, self.sample_array = wf.read(file_path)
 
     def close(self):
         self.stream.stop_stream()
         
 class DataManager(object):
 
-    """ Esta clase la estoy implementando para guardar informacion util como
+    """Esta clase la estoy implementando para guardar informacion util como
     directorio donde trabajo, para poder cargar archivos csv dinamicamente al
     momemnto de elegir el tamanio de grano ya que cargar todos los csv ocupa
     mucha memoria. tambien quiero hacer aca los procesos de filtrado de data
@@ -86,6 +93,11 @@ class DataManager(object):
                             }
         else:
             print('no csv on directory')
+    
+    def filter_data_frame(self, data_frame, columns):
+        #pyqtRemoveInputHook()
+        #set_trace()                  
+        self.filteredDataFrame = self.data_file_dict['data_frame'].filter(items=columns)
 
 class MyForm(QDialog):
 
@@ -99,6 +111,8 @@ class MyForm(QDialog):
         self.ui.stopButton.setChecked(True)
         self.ui.comboBoxGrainSize.currentIndexChanged.connect(self.reload_features)
         self.ui.listWidgetFeatures.itemSelectionChanged.connect(self.set_selected_features)
+        self.ui.pushButtonFilterFeatures.clicked.connect(self.filter_features)
+        self.ui.pushButtonRearrange.clicked.connect(self.rearrange_frames)
         self.status = False 
         self.value = 0
         self.ui.pushButtonLoadFile.clicked.connect(self.openFileDialog)
@@ -172,6 +186,37 @@ class MyForm(QDialog):
         selectedFeatures = self.ui.listWidgetFeatures.selectedItems()
         for i in list(selectedFeatures):
             self.ui.listWidgetSelectedFeatures.addItem(i.text())
+
+    def addSelectedFeaturesToComboBox(self, items_string_array):
+        self.ui.comboBoxGrainSortingCriterion.clear()
+        self.ui.comboBoxGrainSortingCriterion.addItems(items_string_array)
+
+    def filter_features(self):
+        if self.ui.listWidgetSelectedFeatures.count() > 0:
+            tempFeatureStringArray = [self.ui.listWidgetSelectedFeatures.item(i).text() for i in range(self.ui.listWidgetSelectedFeatures.count())]
+            self.dataManager.filter_data_frame(self.dataManager.data_file_dict['data_frame'], tempFeatureStringArray) 
+            self.addSelectedFeaturesToComboBox(tempFeatureStringArray)
+        else:
+            print("No features selected")
+    
+    def rearrange_frames(self):
+        # para detener audio callback function
+        #self.status = False
+        if self.ui.comboBoxGrainSortingCriterion.count() > 0:
+            featureValues = np.array(self.dataManager.filteredDataFrame[self.ui.comboBoxGrainSortingCriterion.currentText()].values)
+            featureValuesSorted= np.argsort(featureValues)
+            windowType = self.ui.comboBoxWindowType.currentText()
+            # pyaudio.paInt16
+            #samples = np.frombuffer(self.player.fileOrderedFrames, dtype= np.int16)
+            samples_rearranged = gu.rearrange(self.dataManager.data_file_dict['frameSize'],
+                                                self.dataManager.data_file_dict['hopSize'],
+                                                self.player.sample_array,
+                                                featureValuesSorted,
+                                                windowType)
+            rearrenged_bytes = samples_rearranged.astype(np.int16).tobytes() 
+            self.status = False
+            self.player.frames = rearrenged_bytes
+            self.status = True
 
 
 if __name__ == '__main__':

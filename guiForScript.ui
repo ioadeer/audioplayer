@@ -183,7 +183,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>Perform PCA analysis</string>
+      <string>Perform PCA </string>
      </property>
     </widget>
    </widget>
@@ -243,7 +243,7 @@
     <widget class="QComboBox" name="comboBoxLookUpDirection">
      <property name="geometry">
       <rect>
-       <x>280</x>
+       <x>270</x>
        <y>40</y>
        <width>111</width>
        <height>25</height>
@@ -271,6 +271,85 @@
      </property>
      <property name="text">
       <string>Sorty by:</string>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="comboBoxWindowType">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>110</y>
+       <width>121</width>
+       <height>25</height>
+      </rect>
+     </property>
+     <item>
+      <property name="text">
+       <string>hanning</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>hamming</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>blackman</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>gaussian</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>welch</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>bartlett</string>
+      </property>
+     </item>
+    </widget>
+    <widget class="QLabel" name="label_6">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>80</y>
+       <width>121</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Window type:</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButtonRearrange">
+     <property name="geometry">
+      <rect>
+       <x>180</x>
+       <y>110</y>
+       <width>271</width>
+       <height>25</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>&lt;&lt; rEaRrAnGe!! &gt;&gt; : P</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButtonOriginalOrder">
+     <property name="geometry">
+      <rect>
+       <x>188</x>
+       <y>160</y>
+       <width>261</width>
+       <height>25</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Normal  : '(</string>
      </property>
     </widget>
    </widget>
