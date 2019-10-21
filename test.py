@@ -10,6 +10,8 @@ import atexit
 import glob
 import pandas as pd
 import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
 from PyQt5.QtWidgets import QApplication, QDialog, QFileDialog
 from PyQt5.QtCore import QTimer
 from guiTest1 import *
@@ -99,6 +101,20 @@ class DataManager(object):
         #set_trace()                  
         self.filteredDataFrame = self.data_file_dict['data_frame'].filter(items=columns)
 
+    def performPCA(self):
+        x = StandardScaler().fit_transform(self.filteredDataFrame)
+        pca = PCA(n_components =2)
+        principalComponents = pca.fit_transform(x)
+        tempDf = []
+        principalDf = pd.DataFrame(data = principalComponents,
+                                    columns = ['principal component 1',
+                                        'principal component 2'])
+        tempDf.append(principalDf)
+        tempDf.append(self.filteredDataFrame)
+        self.filteredDataFrame =pd.concat(tempDf, axis= 1)
+        
+
+
 class MyForm(QDialog):
 
     def __init__(self):
@@ -113,6 +129,8 @@ class MyForm(QDialog):
         self.ui.listWidgetFeatures.itemSelectionChanged.connect(self.set_selected_features)
         self.ui.pushButtonFilterFeatures.clicked.connect(self.filter_features)
         self.ui.pushButtonRearrange.clicked.connect(self.rearrange_frames)
+        self.ui.pushButtonPerformPCA.clicked.connect(self.call_pca)
+        self.ui.pushButtonOriginalOrder.clicked.connect(self.arrange_frames_original_order)
         self.status = False 
         self.value = 0
         self.ui.pushButtonLoadFile.clicked.connect(self.openFileDialog)
@@ -218,12 +236,24 @@ class MyForm(QDialog):
             self.player.frames = rearrenged_bytes
             self.status = True
 
+    def call_pca(self):
+        if self.ui.listWidgetSelectedFeatures.count() > 0:
+            self.dataManager.performPCA()
+            #pyqtRemoveInputHook()
+            #set_trace()
+            tempFeatureStringArray = self.dataManager.filteredDataFrame.columns.values[:]
+            self.ui.listWidgetFeatures.addItems(tempFeatureStringArray)
+            self.addSelectedFeaturesToComboBox(tempFeatureStringArray)
+        else:
+            print('select and filter features to perform pca')
+
+    def arrange_frames_original_order(self):
+        self.player.frames = self.player.fileOrderedFrames
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     w = MyForm()
     w.show()
-    #w.exec()
-    #sys.exit(0)
     sys.exit(app.exec_())
 
