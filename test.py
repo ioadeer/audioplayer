@@ -15,7 +15,7 @@ from sklearn.decomposition import PCA
 from PyQt5.QtWidgets import QApplication, QDialog, QFileDialog
 from PyQt5.QtCore import QTimer
 from guiTest1 import *
-sys.path.append('.')
+#sys.path.append('.')
 from utils import granular_util as gu
 
 from PyQt5.QtCore import pyqtRemoveInputHook
@@ -122,6 +122,7 @@ class MyForm(QDialog):
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
         self.ui.readPoint.valueChanged.connect(self.readPointValueChanged)
+        self.ui.readPoint.setTracking(False)
         self.ui.playButton.toggled.connect(self.turnPlayStatusOn)
         self.ui.playButton.setChecked(False)
         self.ui.stopButton.setChecked(True)
@@ -146,9 +147,9 @@ class MyForm(QDialog):
         self.player.load_file_and_set_frames(f.name)
         self.player.START_POINT = 0 
         self.ui.labelFileName.setText(file_name)
-        maximum = int(self.player.number_of_frames / self.player.CHUNK)
+        self.maximum = int(self.player.number_of_frames / self.player.CHUNK)
         #self.ui.readPoint.setSingleStep(self.player.CHUNK)
-        self.ui.readPoint.setMaximum(maximum)
+        self.ui.readPoint.setMaximum(self.maximum)
         self.ui.readPoint.setValue(0)
         self.timer.start(0.2)
 
@@ -157,7 +158,8 @@ class MyForm(QDialog):
         self.status = False
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fname = QFileDialog.getOpenFileName(self, 'Open Wav File','\home','', options = options)
+        fname = QFileDialog.getOpenFileName(
+                self, 'Open Wav File','\home','', options = options)
         if fname[0]:
             f = open(fname[0], 'r')
         with f:
@@ -168,7 +170,9 @@ class MyForm(QDialog):
             if extension == 'wav':
                 self.loadAudioFile(f, file_name_and_extension)
                 self.dataManager.setWorkingDirectory(path_of_file)
-                self.dataManager.loadCsvFiles(int(self.ui.comboBoxGrainSize.itemText(self.ui.comboBoxGrainSize.currentIndex())))
+                self.dataManager.loadCsvFiles(
+                        int(self.ui.comboBoxGrainSize.itemText(
+                            self.ui.comboBoxGrainSize.currentIndex())))
                 self.loadAllFeaturesToFeatureListWidget()
             else:
                 print("Must be a .wav file")
@@ -190,13 +194,17 @@ class MyForm(QDialog):
     def audioCallback(self):
         if self.status:
             self.player.write_output()
+            self.ui.readPoint.setSliderPosition(self.ui.readPoint.sliderPosition()+1)
+        #print(self.timer.remainingTime())
 
     def loadAllFeaturesToFeatureListWidget(self):
         self.ui.listWidgetFeatures.clear()
-        self.ui.listWidgetFeatures.addItems(self.dataManager.data_file_dict['data_frame'].columns.values[1:])
+        self.ui.listWidgetFeatures.addItems(
+                self.dataManager.data_file_dict['data_frame'].columns.values[1:])
 
     def reload_features(self):
-        self.dataManager.loadCsvFiles(int(self.ui.comboBoxGrainSize.itemText(self.ui.comboBoxGrainSize.currentIndex())))
+        self.dataManager.loadCsvFiles(int(self.ui.comboBoxGrainSize.itemText(
+            self.ui.comboBoxGrainSize.currentIndex())))
         self.loadAllFeaturesToFeatureListWidget()
 
     def set_selected_features(self):
@@ -211,8 +219,11 @@ class MyForm(QDialog):
 
     def filter_features(self):
         if self.ui.listWidgetSelectedFeatures.count() > 0:
-            tempFeatureStringArray = [self.ui.listWidgetSelectedFeatures.item(i).text() for i in range(self.ui.listWidgetSelectedFeatures.count())]
-            self.dataManager.filter_data_frame(self.dataManager.data_file_dict['data_frame'], tempFeatureStringArray) 
+            tempFeatureStringArray = [self.ui.listWidgetSelectedFeatures.item(i).text()
+                    for i in range(self.ui.listWidgetSelectedFeatures.count())]
+            self.dataManager.filter_data_frame(
+                    self.dataManager.data_file_dict['data_frame'],
+                    tempFeatureStringArray) 
             self.addSelectedFeaturesToComboBox(tempFeatureStringArray)
         else:
             print("No features selected")
@@ -221,7 +232,9 @@ class MyForm(QDialog):
         # para detener audio callback function
         #self.status = False
         if self.ui.comboBoxGrainSortingCriterion.count() > 0:
-            featureValues = np.array(self.dataManager.filteredDataFrame[self.ui.comboBoxGrainSortingCriterion.currentText()].values)
+            featureValues = np.array(
+                    self.dataManager.filteredDataFrame[
+                        self.ui.comboBoxGrainSortingCriterion.currentText()].values)
             featureValuesSorted= np.argsort(featureValues)
             windowType = self.ui.comboBoxWindowType.currentText()
             # pyaudio.paInt16
@@ -242,7 +255,7 @@ class MyForm(QDialog):
             #pyqtRemoveInputHook()
             #set_trace()
             tempFeatureStringArray = self.dataManager.filteredDataFrame.columns.values[:]
-            self.ui.listWidgetFeatures.addItems(tempFeatureStringArray)
+            #self.ui.listWidgetFeatures.addItems(tempFeatureStringArray)
             self.addSelectedFeaturesToComboBox(tempFeatureStringArray)
         else:
             print('select and filter features to perform pca')
