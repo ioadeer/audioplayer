@@ -132,10 +132,12 @@ class MyForm(QDialog):
         self.ui.pushButtonRearrange.clicked.connect(self.rearrange_frames)
         self.ui.pushButtonPerformPCA.clicked.connect(self.call_pca)
         self.ui.pushButtonOriginalOrder.clicked.connect(self.arrange_frames_original_order)
+        self.ui.pushButtonSaveFile.clicked.connect(self.saveAudioFile)
         self.status = False 
         self.value = 0
         self.ui.pushButtonLoadFile.clicked.connect(self.openFileDialog)
         self.show()
+        self.framesAsNumpyArray = []
         self.initAudioPlayer()
         self.initDataManager()
         timer = QtCore.QTimer()
@@ -152,6 +154,14 @@ class MyForm(QDialog):
         self.ui.readPoint.setMaximum(self.maximum)
         self.ui.readPoint.setValue(0)
         self.timer.start(0.2)
+
+    def saveAudioFile(self): 
+        name = (str(self.dataManager.data_file_dict['name'])  
+                + "_fs_" + str(self.dataManager.data_file_dict['frameSize']) 
+                + "_orderder_by_" + self.ui.comboBoxGrainSortingCriterion.currentText()
+                + ".wav")
+        wf.write(name, 44100, self.framesAsNumpyArray)
+        pass
 
     def openFileDialog(self):
         self.ui.stopButton.setChecked(True)
@@ -244,6 +254,7 @@ class MyForm(QDialog):
                                                 self.player.sample_array,
                                                 featureValuesSorted,
                                                 windowType)
+            self.framesAsNumpyArray = samples_rearranged.astype(np.int16)
             rearrenged_bytes = samples_rearranged.astype(np.int16).tobytes() 
             self.status = False
             self.player.frames = rearrenged_bytes

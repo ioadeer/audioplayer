@@ -103,6 +103,9 @@ class Ui_Dialog(object):
         self.pushButtonOriginalOrder = QtWidgets.QPushButton(self.playTab)
         self.pushButtonOriginalOrder.setGeometry(QtCore.QRect(188, 160, 261, 25))
         self.pushButtonOriginalOrder.setObjectName("pushButtonOriginalOrder")
+        self.pushButtonSaveFile = QtWidgets.QPushButton(self.playTab)
+        self.pushButtonSaveFile.setGeometry(QtCore.QRect(260, 200, 89, 25))
+        self.pushButtonSaveFile.setObjectName("pushButtonSaveFile")
         self.tabWidget.addTab(self.playTab, "")
 
         self.retranslateUi(Dialog)
@@ -138,6 +141,7 @@ class Ui_Dialog(object):
         self.label_6.setText(_translate("Dialog", "Window type:"))
         self.pushButtonRearrange.setText(_translate("Dialog", "<< rEaRrAnGe!! >> : P"))
         self.pushButtonOriginalOrder.setText(_translate("Dialog", "Normal  : \'("))
+        self.pushButtonSaveFile.setText(_translate("Dialog", "Save file"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.playTab), _translate("Dialog", "Play"))
 
 
